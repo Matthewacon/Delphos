@@ -1,6 +1,6 @@
 package io.github.matthewacon.delphos;
 
-import io.github.matthewacon.delphos.class_parser.ClassFile;
+//import io.github.matthewacon.delphos.class_parser.ClassFile;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 
 public class Test {
@@ -41,10 +41,18 @@ public class Test {
   long start = System.currentTimeMillis();
   final IntegerTree
    root = new IntegerTree(-1),
-   child = new IntegerTree(7);
-  child.addChild(new IntegerTree(8));
-  child.addChild(new IntegerTree(9));
-  root.addChild(child);
+   child1 = new IntegerTree(7),
+   child2 = new IntegerTree(100);
+  child1.addChild(new IntegerTree(8));
+  child1.addChild(new IntegerTree(9));
+  child1.addChild(new IntegerTree(10));
+  child1.addChild(new IntegerTree(11));
+  child2.addChild(new IntegerTree(101));
+  child2.addChild(new IntegerTree(102));
+  child2.addChild(new IntegerTree(103));
+  child2.addChild(new IntegerTree(104));
+  root.addChild(child1);
+  root.addChild(child2);
   root.traverseTree((parent, elem) -> {
    System.out.println(elem);
    return elem;

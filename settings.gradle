@@ -1,0 +1,5 @@
+rootProject.name = 'Delphos'
+rootProject.buildFileName = 'build.gradle'
+
+//includeFlat 'pal'
+//project(':pal').projectDir = new File('../pal/')

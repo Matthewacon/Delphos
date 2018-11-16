@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -14,7 +15,7 @@ import io.github.matthewacon.delphos.api.AbstractSyntaxTree;
 import io.github.matthewacon.delphos.api.AnnotationCondition;
 import io.github.matthewacon.delphos.api.ParsablePrimitives;
 import io.github.matthewacon.delphos.api.ParserFrame;
-import io.github.matthewacon.delphos.class_parser.FieldModifiers;
+//import io.github.matthewacon.delphos.class_parser.FieldModifiers;
 import io.github.matthewacon.pal.util.ClassUtils;
 import io.github.matthewacon.pal.util.IOUtils;
 
@@ -53,7 +54,7 @@ public final class Parser<T extends AbstractSyntaxTree> {
     .stream()
     .filter(field -> {
      final int mods = field.getModifiers();
-     return (mods | FieldModifiers.ACC_STATIC.value) != mods;
+     return (mods | Modifier.STATIC) != mods;
     })
     .collect(Collectors.toList());
 //  final Field[] fields = clazz.getDeclaredFields();

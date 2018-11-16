@@ -1,0 +1,62 @@
+plugins {
+ id 'java'
+}
+
+group 'io.github.matthewacon'
+version '0.0.1'
+
+sourceCompatibility = targetCompatibility = 1.8
+
+repositories {
+ jcenter()
+}
+
+sourceSets {
+ delphos {
+  java.srcDirs = ['src/']
+  resources.srcDirs = ['res/']
+ }
+}
+
+configurations {
+ delphosRuntime.extendsFrom(delphosCompile)
+}
+
+//project(':pal') {
+// build {
+//  onlyIf {
+//   false
+//  }
+// }
+//}
+
+dependencies {
+// delphosCompile tasks.getByPath(':pal:libOnlyJar').outputs.files
+// delphosCompile files('../pal/build/libs/pal-libOnly-0.0.1.jar')
+ delphosCompile files('../pal/build/classes/java/pal')
+}
+
+//compileDelphosJava {
+// println tasks.getByPath(':pal:libOnlyJar').outputs.files
+// dependsOn(tasks.getByPath(':pal:libOnlyJar'))
+//// dependsOn(':pal:libOnlyJar')
+//// doLast {
+////  println
+//// }
+//}
+
+jar {
+ from sourceSets.delphos.output
+ manifest.attributes(
+  //TODO remove Main-Class attribute
+  'Main-Class' : 'io.github.matthewacon.delphos.Test',
+  'Created-By' : 'Matthewacon (Matthew Barichello)'
+ )
+}
+
+task run(type: JavaExec, dependsOn: jar) {
+ standardOutput = System.out
+ errorOutput = System.err
+ classpath = files('../pal/build/classes/java/pal', jar.outputs.files.getAt(0).absolutePath)
+ main = 'io.github.matthewacon.delphos.Test'
+}
