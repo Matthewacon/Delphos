@@ -35,7 +35,7 @@ public enum ParsablePrimitives implements ParsableType {
   }
   //TODO return null instead?
   throw new IllegalArgumentException(
-   "'" +
+   "The type: '" +
    clazz.getCanonicalName() +
    "' does not match any parsable primitives!"
   );
