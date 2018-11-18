@@ -1,7 +1,10 @@
 package io.github.matthewacon.delphos;
 
 //import io.github.matthewacon.delphos.class_parser.ClassFile;
+import io.github.matthewacon.pal.util.AbstractTreeMap;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
+
+import java.util.LinkedList;
 
 public class Test {
  public static final class IntegerTree extends ExampleLinkedTreeMap<IntegerTree> {
@@ -53,7 +56,7 @@ public class Test {
   child2.addChild(new IntegerTree(104));
   root.addChild(child1);
   root.addChild(child2);
-  root.traverseTree((parent, elem) -> {
+  root.traverseTree((AbstractTreeMap.TreeTraversalFunction<IntegerTree, LinkedList<IntegerTree>>)(parent, elem) -> {
    System.out.println(elem);
    return elem;
   });

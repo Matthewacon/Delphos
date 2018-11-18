@@ -2,6 +2,7 @@ package io.github.matthewacon.delphos;
 
 import io.github.matthewacon.delphos.api.*;
 import io.github.matthewacon.pal.util.ClassUtils;
+import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 import io.github.matthewacon.pal.util.IOUtils;
 
 import java.io.IOException;
@@ -15,73 +16,44 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public final class Parser<T extends AbstractSyntaxTree> {
+public final class Parser<T> extends ExampleLinkedTreeMap<Parser<T>> implements IParser<T> {
  /**Contains a map of half-linked ParserTree instances for a given class. Every ParserTree instance contains references
   * to the respective children in the tree, descending from the given class, however, does not contain references to
   * the parent of a class. Parent hierarchy is circumstantial and thus constructed on a per-Parser basis.
   */
- private static final LinkedHashMap<Class<?>, ParserTree<?>> PARSER_CACHE;
+ private static final LinkedHashMap<Class<?>, Parser<?>> PARSER_CACHE;
 
  static {
   PARSER_CACHE = new LinkedHashMap<>();
  }
 
  private final Class<T> target;
- private final ParserTree<? super T> apt;
+ private final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions;
 
- public Parser(final Class<T> clazz) {
-  if (!AbstractSyntaxTree.class.isAssignableFrom(clazz)) {
-   throw new IllegalArgumentException();
-  }
-  this.target = clazz;
-  ParserTree apt = PARSER_CACHE.get(clazz);
-  if (apt == null) {
-   //TODO populate the parser cache
-   apt = constructTree(clazz, true);
-   //Construct the superclass parser hierarchy (child linking only)
-   for (final Class<?> superClass : ClassUtils.resolveSuperClasses(clazz)) {
-    if (AbstractSyntaxTree.class.isAssignableFrom(superClass)) {
-     final ParserTree<?> superTree = constructTree(superClass, false);
-     superTree.addChild(apt);
-     apt = superTree;
-    } else {
-     if (!Object.class.equals(superClass)) {
-      throw new IllegalArgumentException(
-       "Warning: Class '" +
-       superClass.getCanonicalName() +
-       "' is a superclass of '" +
-       clazz.getCanonicalName() +
-       "' and does not extend '" +
-       AbstractSyntaxTree.class.getCanonicalName() +
-       "'!"
-      );
-     }
-    }
-   }
-   //TODO Construct the parent hierarchy
-   ParserTree parent = apt;
-   LinkedList<ParserTree>
-    toLink,
-    nextRound = new LinkedList<>();
-   nextRound.addAll(parent.getChildren());
-   while (nextRound.size() > 0) {
-    toLink = new LinkedList<>(nextRound);
-    nextRound.clear();
-    for (final ParserTree child : toLink) {
-     child.setParent(parent);
-    }
-   }
-  }
-  this.apt = apt;
+ private Parser(final Class<T> target, final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions) {
+  this.target = target;
+  this.conditions = conditions;
  }
 
- //Disregards superclasses
  //TODO multithread field type processing
  //TODO caching functionality
- private static <T> ParserTree<T> constructTree(final Class<T> clazz, final boolean checkConstructor) {
-  final LinkedList<ParserTree<?>> parsableTypes = new LinkedList<>();
+ //TODO remove recursive branching
+ //TODO superclass parser construction
+ public static <T> Parser<T> construct(final Class<T> clazz) {
+  final boolean isPrimitive = ParsablePrimitives.contains(clazz);
+  if (!(AbstractSyntaxTree.class.isAssignableFrom(clazz) || isPrimitive)) {
+   throw new IllegalArgumentException(
+    "The class '" +
+    clazz.getCanonicalName() +
+    "' is not primitive and does not extend '" +
+    AbstractSyntaxTree.class.getCanonicalName() +
+    "'!"
+   );
+  }
+  final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions = new LinkedHashMap<>();
+  Parser<T> parser = new Parser<>(clazz, conditions);
   //Check for default constructor
-  if (checkConstructor) {
+  if (!isPrimitive) {
    final long viableConstructors = Arrays
     .stream(clazz.getConstructors())
     .filter(constructor -> {
@@ -111,11 +83,11 @@ public final class Parser<T extends AbstractSyntaxTree> {
    field.setAccessible(true);
    //TODO Pal support for generic parameter forwarding -- Class<(H)> => LinkedList<AnnotationCondition<(H)>>
    //Process field annotations
-   final LinkedList<AnnotationCondition<?>> conditions = new LinkedList<>();
+   final LinkedList<AnnotationCondition> fieldConditions = new LinkedList<>();
    for (final Annotation annotation : field.getAnnotations()) {
-    final AnnotationCondition<?> condition = AnnotationCondition.generateCondition(annotation);
+    final AnnotationCondition condition = AnnotationCondition.generateCondition(annotation);
     if (condition != null) {
-     conditions.add(condition);
+     fieldConditions.add(condition);
     } else {
      System.err.println(
       "Warning: The annotation '" +
@@ -124,6 +96,7 @@ public final class Parser<T extends AbstractSyntaxTree> {
      );
     }
    }
+
    final Class<?> fieldType = field.getType();
    if (fieldType.isArray()) {
     //TODO process array dim annotations
@@ -134,21 +107,16 @@ public final class Parser<T extends AbstractSyntaxTree> {
     assertFieldCompliance(field, clazz, baseFieldType);
    }
    //Construct APT for primitive or class
-   if (fieldType.isPrimitive()) {
-    //Process primitives
-    parsableTypes.add(new ParserTree(
-     ParsablePrimitives.resolve(fieldType),
-     conditions
-    ));
-   } else {
-    //Process classes
+   IParser pt = ParsablePrimitives.resolve(fieldType);
+   if (pt == null) {
+    //Process class
     assertFieldCompliance(field, clazz, fieldType);
-
+//    pt = new Parser(clazz, field, fieldConditions);
    }
-  }
-  //Calculate bit length
 
-  return null;
+  }
+
+  return parser;
  }
 
  //what is this name
@@ -166,13 +134,54 @@ public final class Parser<T extends AbstractSyntaxTree> {
   }
  }
 
- public T parse(final InputStream is) throws IOException {
-  final byte[] data = IOUtils.readStream(is);
-  final int[] index = new int[1];
+ @Override
+ public Parser<T> clone() {
+  //TODO clone conditions
+//  return new Parser<>(target);
+  return null;
+ }
 
-  apt.traverseTree((root, child) -> {
+ @Override
+ public boolean equals(Object obj) {
+  if (obj instanceof Parser) {
+   final Parser<T> parser = (Parser<T>)obj;
+   if (parser.target.equals(target)) {
+    return true;
+   }
+  }
+  return false;
+ }
+
+ @Override
+// public <C, P extends IParser<C>> Parsed<P, C> parse(Parsed pt, byte[] data) {
+ public Parsed<Parser<T>, T> parse(Parsed pt, byte[] data) {
+  final T inst;
+  try {
+   inst = target.newInstance();
+  } catch (final Throwable t) {
+   throw new RuntimeException("Could not instantiate '" + target.getCanonicalName() + "'!", t);
+  }
+  //Start at the top-level superclass (excluding java.lang.Object)
+  Parser<T> parent = this;
+  while (getParent() != null) {
+   parent = getParent();
+  }
+  final long index[] = { 0L };
+  parent.traverseTree((TreeTraversalFunction<Parser<T>, LinkedList<Parser<T>>>)(root, child) -> {
+   if (!root.equals(child)) {
+
+   }
    return child;
   });
-  return null;
+  return new Parsed<>(this, inst, 0L);
+ }
+
+ @Override
+ public Class<T> getType() {
+  return target;
+ }
+
+ public T parse(final InputStream is) throws IOException {
+  return parse(null, IOUtils.readStream(is)).parsed;
  }
 }
