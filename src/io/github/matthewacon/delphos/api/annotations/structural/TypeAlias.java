@@ -1,4 +1,4 @@
-package io.github.matthewacon.delphos.api.annotations.type;
+package io.github.matthewacon.delphos.api.annotations.structural;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

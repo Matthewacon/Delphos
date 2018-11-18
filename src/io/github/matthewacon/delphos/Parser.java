@@ -1,7 +1,6 @@
 package io.github.matthewacon.delphos;
 
 import io.github.matthewacon.delphos.api.*;
-import io.github.matthewacon.pal.util.ClassUtils;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 import io.github.matthewacon.pal.util.IOUtils;
 
@@ -28,9 +27,9 @@ public final class Parser<T> extends ExampleLinkedTreeMap<Parser<T>> implements 
  }
 
  private final Class<T> target;
- private final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions;
+ private final LinkedHashMap<Field, LinkedList<ConditionalAnnotation>> conditions;
 
- private Parser(final Class<T> target, final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions) {
+ private Parser(final Class<T> target, final LinkedHashMap<Field, LinkedList<ConditionalAnnotation>> conditions) {
   this.target = target;
   this.conditions = conditions;
  }
@@ -50,7 +49,7 @@ public final class Parser<T> extends ExampleLinkedTreeMap<Parser<T>> implements 
     "'!"
    );
   }
-  final LinkedHashMap<Field, LinkedList<AnnotationCondition>> conditions = new LinkedHashMap<>();
+  final LinkedHashMap<Field, LinkedList<ConditionalAnnotation>> conditions = new LinkedHashMap<>();
   Parser<T> parser = new Parser<>(clazz, conditions);
   //Check for default constructor
   if (!isPrimitive) {
@@ -81,11 +80,11 @@ public final class Parser<T> extends ExampleLinkedTreeMap<Parser<T>> implements 
   //Build parser tree
   for (final Field field : fields) {
    field.setAccessible(true);
-   //TODO Pal support for generic parameter forwarding -- Class<(H)> => LinkedList<AnnotationCondition<(H)>>
+   //TODO Pal support for generic parameter forwarding -- Class<(H)> => LinkedList<ConditionalAnnotation<(H)>>
    //Process field annotations
-   final LinkedList<AnnotationCondition> fieldConditions = new LinkedList<>();
+   final LinkedList<ConditionalAnnotation> fieldConditions = new LinkedList<>();
    for (final Annotation annotation : field.getAnnotations()) {
-    final AnnotationCondition condition = AnnotationCondition.generateCondition(annotation);
+    final ConditionalAnnotation condition = ConditionalAnnotation.generateCondition(annotation);
     if (condition != null) {
      fieldConditions.add(condition);
     } else {

@@ -1,4 +1,4 @@
-package io.github.matthewacon.delphos.api.annotations;
+package io.github.matthewacon.delphos.api.annotations.structural;
 
 public @interface EncapsulatedBy {
  String prefix();
