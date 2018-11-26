@@ -1,9 +1,11 @@
 package io.github.matthewacon.delphos;
 
 //import io.github.matthewacon.delphos.class_parser.ClassFile;
+import io.github.matthewacon.delphos.api.IParser;
 import io.github.matthewacon.pal.util.AbstractTreeMap;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 
 public class Test {
@@ -20,7 +22,7 @@ public class Test {
   }
 
   @Override
-  public IntegerTree clone() {
+  public IntegerTree shallowClone() {
    return new IntegerTree(i);
   }
 
@@ -62,5 +64,37 @@ public class Test {
   });
   System.out.println("Duration: " + (System.currentTimeMillis() - start));
   System.out.println();
+
+  //Parser Tests
+  start = System.currentTimeMillis();
+  final IParser<Byte> parser = ParserTree.construct(byte.class);
+  long end = System.currentTimeMillis();
+  System.out.println("Parser construction time (ms): " + (end - start));
+  start = System.currentTimeMillis();
+  final int i = (int)ParserTree.parse(parser, (byte)0x0F);
+  end = System.currentTimeMillis();
+  System.out.println("Result: " + i + " :: Duration (ms): " + (end - start));
+  start = System.currentTimeMillis();
+  final IParser<Float[]> parser1 = ParserTree.construct(Float[].class);
+  end = System.currentTimeMillis();
+  System.out.println("Parser construction time (ms): " + (end - start));
+  start = System.currentTimeMillis();
+//  int j = Float.floatToRawIntBits(3.1415926535897932384626433826795f);
+  int
+   j = Float.floatToRawIntBits(3.14159265358f),
+   k = Float.floatToRawIntBits(1.41421356237f);
+  final byte[] bytes = {
+   (byte)(j >> 24),
+   (byte)(j >> 16),
+   (byte)(j >> 8),
+   (byte)j,
+   (byte)(k >> 24),
+   (byte)(k >> 16),
+   (byte)(k >> 8),
+   (byte)k
+  };
+  final Object[] ia = ParserTree.parse(parser1, bytes);
+  end = System.currentTimeMillis();
+  System.out.println("Result: " + Arrays.toString(ia) + " :: Duration (ms): " + (end - start));
  }
 }

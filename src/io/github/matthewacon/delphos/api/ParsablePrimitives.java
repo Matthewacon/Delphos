@@ -2,6 +2,7 @@ package io.github.matthewacon.delphos.api;
 
 import io.github.matthewacon.delphos.Parsed;
 
+//Specific parser implementations for every primitive, and respective boxed, types in Java
 public enum ParsablePrimitives implements IParser {
  BOOLEAN(boolean.class, Boolean.class) {
   @Override
@@ -18,21 +19,31 @@ public enum ParsablePrimitives implements IParser {
  SHORT(short.class, Short.class) {
   @Override
   public Parsed<IParser<Short>, Short> parse(final Parsed pt, final byte[] data) {
-   return new Parsed<>(SHORT, (short)(data[1] << 8 | data[0]), 16L);
+   return new Parsed<>(
+    SHORT,
+    (short)(data[0] | (data[1] & 0xFF) << 8),
+    16L
+   );
   }
  },
  INTEGER(int.class, Integer.class) {
   @Override
   public Parsed<IParser<Integer>, Integer> parse(final Parsed pt, final byte[] data) {
-   //TODO
-   return new Parsed<>(INTEGER, null, 32L);
+   return new Parsed<>(
+    INTEGER,
+    data[0] << 24 | (data[1] & 0xFF) << 16 | (data[2] & 0xFF) << 8 | (data[3] & 0xFF),
+    32L
+   );
   }
  },
  FLOAT(float.class, Float.class) {
   @Override
   public Parsed<IParser<Float>, Float> parse(final Parsed pt, final byte[] data) {
-   //TODO
-   return new Parsed<>(FLOAT, null, 32L);
+   return new Parsed<>(
+    FLOAT,
+    Float.intBitsToFloat(data[0] << 24 | (data[1] & 0xFF) << 16 | (data[2] & 0xFF) << 8 | (data[3] & 0xFF)),
+    32L
+   );
   }
  },
  LONG(long.class, Long.class) {

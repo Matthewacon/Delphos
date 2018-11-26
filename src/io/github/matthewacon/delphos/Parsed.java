@@ -15,7 +15,7 @@ public final class Parsed<T extends IParser<C>, C> extends ExampleLinkedTreeMap<
  }
 
  @Override
- public Parsed<T, C> clone() {
+ public Parsed<T, C> shallowClone() {
   return new Parsed<>(parser, parsed, bitLength);
  }
 
