@@ -1,12 +1,15 @@
 package io.github.matthewacon.delphos;
 
 import io.github.matthewacon.delphos.api.*;
+import io.github.matthewacon.delphos.utils.BitStream;
 import io.github.matthewacon.pal.util.ClassUtils;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 
 //Generic ParserTree structure that encapsulates all extensions of IParser<T>, including primitives, arrays and complex
 //types.
@@ -47,10 +50,11 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
  public static final <T> IParser<T> construct(final Class<T> clazz) {
   assertTypeCompliance(clazz);
   //Search for primitive parser
+  //If a primitive parser was found, then the type is unbound
   final IParser<T> parser = ParsablePrimitives.resolve(clazz);
-  //Process array or complex type
+  //Process array or complex type (if no primitive parser was found)
   if (parser == null) {
-   ParserTree<?> parserTree;
+   ParserTree<?> parserTree = null;
    if (clazz.isArray()) {
     //Process unbound array type (an array type that does not pertain to an encapsulating class)
     if (ClassUtils.countDims(clazz) > 1) {
@@ -72,6 +76,7 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
        long bitLength = originalLength;
        //TODO BufferUnderflowException and BufferOverflowException
        while (bitLength > 0) {
+//        data = BitStream.shiftLeft(data, originalLength - bitLength, false);
         final Parsed parsed = componentParser.parse(pt, data);
         if (pt == null) {
          pt = parsed;
@@ -93,12 +98,32 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
      };
     }
    } else {
-    //Process complex type
-    final LinkedList<StructuralAnnotation<?>> structuralAnnotations = new LinkedList<>();
-    final LinkedList<ConditionalAnnotation> conditionalAnnotations = new LinkedList<>();
-    //TODO Process class annotations
-    //TODO Process fields and field annotations
-    parserTree = new ParserTree<>(clazz, structuralAnnotations, conditionalAnnotations);
+    LinkedHashMap<ParserTree<?>, LinkedList<Class<?>>>
+     lastRound = new LinkedHashMap<>(),
+     nextRound = new LinkedHashMap<>();
+//    LinkedList<Class<?>>
+//     lastRound = new LinkedList<>(),
+//     nextRound = new LinkedList<>();
+    nextRound.put(parserTree, new LinkedList<>());
+    nextRound.get(parserTree).add(clazz);
+    while (nextRound.size() > 0) {
+     lastRound.clear();
+     lastRound = new LinkedHashMap<>(nextRound);
+     nextRound.clear();
+     for (final Entry<ParserTree<?>, LinkedList<Class<?>>> entry : lastRound.entrySet()) {
+      if (target.isArray()) {
+       //TODO process array dim annotations
+       //Each dimension must either have a predefined length, or be encapsulated
+      } else {
+       //Process complex type
+       final LinkedList<StructuralAnnotation<?>> structuralAnnotations = new LinkedList<>();
+       final LinkedList<ConditionalAnnotation> conditionalAnnotations = new LinkedList<>();
+       //TODO Process class annotations
+       //TODO Process fields and field annotations
+       parserTree = new ParserTree<>(clazz, structuralAnnotations, conditionalAnnotations);
+      }
+     }
+    }
    }
    return (IParser<T>)parserTree;
   }

@@ -16,6 +16,17 @@ public enum ParsablePrimitives implements IParser {
    return new Parsed<>(BYTE, data[0], 8L);
   }
  },
+ //TODO write unit tests to ensure the endianness matches correctly
+ CHAR(char.class, Character.class) {
+  @Override
+  public Parsed<IParser<Character>, Character> parse(Parsed pt, byte[] data) {
+   return new Parsed<>(
+    CHAR,
+    (char)((data[0] & 0xFF) << 8 | data[1]),
+   16L
+   );
+  }
+ },
  SHORT(short.class, Short.class) {
   @Override
   public Parsed<IParser<Short>, Short> parse(final Parsed pt, final byte[] data) {

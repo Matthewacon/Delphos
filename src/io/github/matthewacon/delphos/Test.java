@@ -96,5 +96,14 @@ public class Test {
   final Object[] ia = ParserTree.parse(parser1, bytes);
   end = System.currentTimeMillis();
   System.out.println("Result: " + Arrays.toString(ia) + " :: Duration (ms): " + (end - start));
+  final char c = 'X';
+  System.out.println(c);
+  final byte[] cBytes = {
+   (byte)(c >> 8),
+   (byte)c
+  };
+  final IParser<Character> parser2 = ParserTree.construct(char.class);
+  char d = ParserTree.parse(parser2, cBytes);
+  System.out.println(d);
  }
 }
