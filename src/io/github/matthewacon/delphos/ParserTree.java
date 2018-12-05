@@ -69,7 +69,6 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
      final IParser<?> componentParser = construct(clazz.getComponentType());
      //TODO move to separate class
      return new IParser<T>() {
-      @Override
       public Parsed<IParser<T>, T> parse(Parsed pt, byte[] data) {
        final LinkedList<Object> elements = new LinkedList<>();
        final long originalLength = 8 * data.length;
@@ -85,13 +84,12 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
         }
         bitLength -= parsed.bitLength;
         elements.add(parsed.parsed);
-        //TODO convert over to {@link io.github.matthewacon.delphos.utils.BitUtils#shiftLeft(byte[], long)}
+        //TODO convert over to {@link io.github.matthewacon.delphos.utils.BitBuffer#shiftLeft(byte[], long)}
         data = Arrays.copyOfRange(data, (int)(bitLength / 8), data.length);
        }
        return new Parsed<>(this, (T)elements.toArray(), originalLength);
       }
 
-      @Override
       public Class<T> getType() {
        return clazz;
       }
@@ -111,17 +109,17 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
      lastRound = new LinkedHashMap<>(nextRound);
      nextRound.clear();
      for (final Entry<ParserTree<?>, LinkedList<Class<?>>> entry : lastRound.entrySet()) {
-      if (target.isArray()) {
-       //TODO process array dim annotations
-       //Each dimension must either have a predefined length, or be encapsulated
-      } else {
-       //Process complex type
-       final LinkedList<StructuralAnnotation<?>> structuralAnnotations = new LinkedList<>();
-       final LinkedList<ConditionalAnnotation> conditionalAnnotations = new LinkedList<>();
-       //TODO Process class annotations
-       //TODO Process fields and field annotations
-       parserTree = new ParserTree<>(clazz, structuralAnnotations, conditionalAnnotations);
-      }
+//      if (target.isArray()) {
+//       //TODO process array dim annotations
+//       //Each dimension must either have a predefined length, or be encapsulated
+//      } else {
+//       //Process complex type
+//       final LinkedList<StructuralAnnotation<?>> structuralAnnotations = new LinkedList<>();
+//       final LinkedList<ConditionalAnnotation> conditionalAnnotations = new LinkedList<>();
+//       //TODO Process class annotations
+//       //TODO Process fields and field annotations
+//       parserTree = new ParserTree<>(clazz, structuralAnnotations, conditionalAnnotations);
+//      }
      }
     }
    }

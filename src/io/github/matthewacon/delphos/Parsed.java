@@ -14,12 +14,10 @@ public final class Parsed<T extends IParser<C>, C> extends ExampleLinkedTreeMap<
   this.bitLength = bitLength;
  }
 
- @Override
  public Parsed<T, C> shallowClone() {
   return new Parsed<>(parser, parsed, bitLength);
  }
 
- @Override
  public boolean equals(Object obj) {
   if (obj instanceof Parsed) {
    final Parsed<T, C> casted = (Parsed<T, C>)obj;

@@ -60,8 +60,16 @@ public enum ParsablePrimitives implements IParser {
  LONG(long.class, Long.class) {
   @Override
   public Parsed<IParser<Long>, Long> parse(final Parsed pt, final byte[] data) {
+   final long l = (data[7] & 0xFF) << 56
+    | (data[6] & 0xFF) << 48
+    | (data[5] & 0xFF) << 40
+    | (data[4] & 0xFF) << 32
+    | (data[3] & 0xFF) << 24
+    | (data[2] & 0xFF) << 16
+    | (data[1] & 0xFF) << 8
+    | data[0];
    //TODO
-   return new Parsed<>(LONG, null, 64L);
+   return new Parsed<>(LONG, l, 64L);
   }
  },
  DOUBLE(double.class, Double.class) {
