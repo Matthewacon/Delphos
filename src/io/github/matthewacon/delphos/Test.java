@@ -2,6 +2,8 @@ package io.github.matthewacon.delphos;
 
 //import io.github.matthewacon.delphos.class_parser.ClassFile;
 import io.github.matthewacon.delphos.api.IParser;
+import io.github.matthewacon.delphos.utils.BitStream;
+import io.github.matthewacon.delphos.utils.PrimitiveUtils;
 import io.github.matthewacon.pal.util.AbstractTreeMap;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 
@@ -105,5 +107,10 @@ public class Test {
   final IParser<Character> parser2 = ParserTree.construct(char.class);
   char d = ParserTree.parse(parser2, cBytes);
   System.out.println(d);
+  int integer = 2;
+  System.out.println(integer & 1);
+  BitStream bb = new BitStream(PrimitiveUtils.getBytes(integer));
+  bb.and(32, PrimitiveUtils.getBytes(1));
+  System.out.println();
  }
 }

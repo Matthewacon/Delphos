@@ -1,7 +1,6 @@
 package io.github.matthewacon.delphos;
 
 import io.github.matthewacon.delphos.api.*;
-import io.github.matthewacon.delphos.utils.BitStream;
 import io.github.matthewacon.pal.util.ClassUtils;
 import io.github.matthewacon.pal.util.ExampleLinkedTreeMap;
 
@@ -84,7 +83,7 @@ public final class ParserTree<T> extends ExampleLinkedTreeMap<ParserTree<T>> imp
         }
         bitLength -= parsed.bitLength;
         elements.add(parsed.parsed);
-        //TODO convert over to {@link io.github.matthewacon.delphos.utils.BitBuffer#shiftLeft(byte[], long)}
+        //TODO convert over to {@link io.github.matthewacon.delphos.utils.BitStream#shiftLeft(byte[], long)}
         data = Arrays.copyOfRange(data, (int)(bitLength / 8), data.length);
        }
        return new Parsed<>(this, (T)elements.toArray(), originalLength);

@@ -1,26 +1,89 @@
 package io.github.matthewacon.delphos.utils;
 
-//TODO endianness detection
-//TODO utility parsing for all primitive types
-//TODO stream equivalents for parsing primitives out of the BitStream
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
+import java.util.Arrays;
+import java.util.stream.Stream;
+
+import static io.github.matthewacon.delphos.utils.Arrays.*;
+import static io.github.matthewacon.delphos.utils.PrimitiveUtils.*;
+
+//TODO Constructor overloads for all primitives
+//TODO Consumer functions for all primitives
+//TODO Change to operation stack model to combine multiple operations and add parallel operators
+//TODO implement Stream
+//TODO use longs internally instead of bytes
+//public final class BitStream implements Stream, Closeable {
 public final class BitStream {
- public interface ByteTransformationFunction {
-  byte transform(final byte b);
+ public interface BitTransformationFunction {
+  byte transform(final byte data, final byte transform, final int bitIndex);
  }
 
  private byte[] data;
+ private long bitLength;
 
  public BitStream(final byte[] data) {
-  this.data = data;
+  this(data, data.length * 8L);
  }
 
- public BitStream transform(final ByteTransformationFunction btf) {
-  data = BitStream.transform(data, btf);
+ public BitStream(final byte[] data, final long bitLength) {
+  this.data = data;
+  this.bitLength = bitLength;
+ }
+
+ public BitStream transform(final byte[] tData, final long tBitLength, final BitTransformationFunction btf) {
+  if (tData.length > 0 && tBitLength > 0) {
+   int
+    bitIndex = 0,
+    byteIndex = 0,
+    transformIndex = 0;
+   for (; byteIndex < data.length && (byteIndex * 8L + bitIndex) < bitLength; bitIndex++) {
+    if (bitIndex == 8) {
+     bitIndex = 0;
+     byteIndex += 1;
+     if (transformIndex * 8L < tBitLength) {
+      transformIndex += 1;
+     } else {
+      transformIndex = 0;
+     }
+    }
+    data[byteIndex] = btf.transform(data[byteIndex], tData[transformIndex], bitIndex);
+   }
+  } else {
+   //TODO merge into main loop
+   //TODO bitLength check
+   for (int byteIndex = 0; byteIndex < data.length; byteIndex++) {
+    data[byteIndex] = btf.transform(data[byteIndex], (byte)0, 0);
+   }
+  }
   return this;
  }
 
  public BitStream shiftLeft(final long shift, final boolean pad) {
-  data = BitStream.shiftLeft(data, shift, pad);
+  if (shift != 0L) {
+   if (shift > 0) {
+    //Shift left
+    double dShift = shift / 8D;
+    final long
+     byteShift = (long)Math.floor(dShift),
+     bitShift = ((long)(dShift - byteShift) * 8L);
+
+    if (pad) {
+
+    } else {
+
+    }
+   } else {
+    //Shift right
+    if (pad) {
+
+    } else {
+
+    }
+   }
+  }
   return this;
  }
 
@@ -29,84 +92,208 @@ public final class BitStream {
  }
 
  public BitStream shiftRight(final long shift, final boolean pad) {
-  data = BitStream.shiftRight(data, shift, pad);
-  return this;
+  return shiftLeft(-shift, pad);
  }
 
  public BitStream shiftRight(final long shift) {
   return shiftRight(shift, false);
  }
 
- public BitStream or(final byte or) {
-  data = BitStream.or(data, or);
-  return this;
+ public BitStream or(final long orBitLength, final byte... or) {
+  return transform(
+   or,
+   orBitLength,
+   (data, transform, bitIndex) -> (byte)(data | ((data & (1 << bitIndex)) | (transform & (1 << bitIndex))))
+  );
  }
 
- public BitStream and(final byte and) {
-  data = BitStream.and(data, and);
-  return this;
+ public BitStream and(final long andBitLength, final byte... and) {
+  return transform(
+   and,
+   andBitLength,
+   (data, transform, bitIndex) -> (byte)(data | (data & (1 << bitIndex)) & (transform & (1 << bitIndex)))
+  );
  }
 
- public BitStream xor(final byte xor) {
-  data = BitStream.xor(data, xor);
-  return this;
+ public BitStream xor(final long xorBitLength, final byte... xor) {
+  return transform(
+   xor,
+   xorBitLength,
+   (data, transform, bitIndex) -> (byte)(data | ((data & (1 << bitIndex)) ^ (transform & (1 << bitIndex))))
+  );
  }
 
  public BitStream not() {
-  data = BitStream.not(data);
+  return transform(
+   new byte[0],
+   0L,
+   (data, transform, bitIndex) -> (byte)~data
+  );
+ }
+
+ private void ensureCapacity(final long bitLength) {
+  if (bitLength < 0) {
+   throw new BufferUnderflowException();
+  } else if (bitLength > this.bitLength) {
+   throw new BufferOverflowException();
+  }
+ }
+
+ public BitStream appendData(final long dataBitLength, final int start, final int end, final Object... objs) {
+  ensureArraySize(start, end, objs);
+  final int prevDataLength = data.length;
+  final byte[] newData = new byte[prevDataLength + (int)Math.ceil((dataBitLength * (end - start)) / 8F)];
+  //Copy existing data into new array
+  for (int i = 0; i < data.length; i++) {
+   newData[i] = data[i];
+  }
+  data = newData;
+  int
+   dataIndex = prevDataLength,
+   dataBitIndex = (int)(bitLength % 8),
+   objIndex = 0,
+   objBitIndex = 0,
+   objByteIndex = 0;
+  byte[] objData = getBytes(objs[objByteIndex]);
+  //TODO check condition validity
+  for (; objIndex < objs.length; objBitIndex++, dataBitIndex++) {
+   if (objBitIndex == 8) {
+    objBitIndex = 0;
+    objByteIndex += 1;
+    if (objByteIndex == objData.length) {
+     objByteIndex = 0;
+     objIndex += 1;
+     objData = getBytes(objs[objIndex]);
+    }
+   }
+   if (dataBitIndex == 8) {
+    dataBitIndex = 0;
+    dataIndex += 1;
+   }
+   data[dataIndex] |= ((objData[objByteIndex] & (1 << objBitIndex)) << dataBitIndex);
+  }
   return this;
  }
 
- //TODO Finish
- public static byte[] shiftLeft(final byte[] data, final long shift, final boolean pad) {
-  if (shift == 0) {
-   return data;
-  } else if (shift < 0) {
-
-  } else {
-   final long bitLength = 8L * data.length;
-   float f = shift % 8;
-   final long remainingBitShift = bitLength - (long)Math.floor(f);
-   if (pad) {
-
-   } else {
-
+ public BitStream consumeData(final long typeBitLength, final int start, final int end, final byte[] out) {
+  //TODO
+  ensureArraySize(start, end, out);
+  final long outBitLength = (end - start) * typeBitLength;
+  ensureCapacity(outBitLength);
+  final int newCapacity = data.length - (int)Math.ceil((bitLength - outBitLength) % 8F);
+  int
+   dataByteIndex = newCapacity,
+   dataBitIndex = (int)(bitLength % 8F),
+   outByteIndex = 0,
+   outBitIndex = (int)(outBitLength % 8F);
+  for (; outBitIndex * typeBitLength + outBitIndex < outBitLength; outBitIndex++, dataBitIndex++) {
+   if (outBitIndex == 8) {
+    outBitIndex = 0;
+    outByteIndex += 1;
    }
+   if (dataBitIndex == 8) {
+    dataBitIndex = 0;
+    dataByteIndex += 1;
+   }
+   out[outByteIndex] |= (data[dataByteIndex] & (1 << dataBitIndex)) << outBitIndex;
   }
-  return null;
+  bitLength -= outBitLength;
+  final byte[] newData = new byte[newCapacity];
+  for (int i = 0; i < newCapacity; i++) {
+   newData[i] = data[i];
+  }
+  data = newData;
+  return this;
  }
 
- public static byte[] shiftLeft(final byte[] data, final long shift) {
-  return shiftLeft(data, shift, false);
+ public BitStream appendBooleans(final boolean... booleans) {
+  appendData(1, 0, booleans.length, booleans);
+  return this;
  }
 
- public static byte[] shiftRight(final byte[] data, final long shift, final boolean pad) {
-  return shiftLeft(data, -shift, pad);
+ public BitStream consumeBooleans(final boolean[] booleans, final int start, final int end) {
+  ensureArraySize(start, end, booleans);
+  final int size = end - start;
+  ensureCapacity(size);
+  final byte[] data = new byte[(int)Math.ceil(size / 8F)];
+  consumeData(1, start, end, data);
+  final boolean[] parsed = parseBooleans(size, data);
+  for (int i = 0; i < size; i++) {
+   booleans[start + i] = parsed[i];
+  }
+  return this;
  }
 
- public static byte[] shiftRight(final byte[] data, final long shift) {
-  return shiftRight(data, shift, false);
+ public BitStream appendBytes(final byte... bytes) {
+  appendData(8, 0, bytes.length, bytes);
+  return this;
  }
 
- public static byte[] transform(final byte[] data, final ByteTransformationFunction btf) {
-  for (int i = 0; i < data.length; i++, data[i] = btf.transform(data[i]));
-  return data;
+ public BitStream consumeBytes(final byte[] bytes, final int start, final int end) {
+  ensureArraySize(start, end, bytes);
+  ensureCapacity(end - start);
+  consumeData(8, start, end, bytes);
+  return this;
  }
 
- //TODO Binary operators on entire bit sets (accept byte[] and bit length as arguments)
- public static byte[] or(final byte[] data, final byte or) {
-  return transform(data, b -> (byte)(b | or));
+ public BitStream appendChars(final char... chars) {
+  appendData(16, 0, chars.length, chars);
+  return this;
  }
 
- public static byte[] and(final byte[] data, final byte and) {
-  return transform(data, b -> (byte)(b & and));
+ public BitStream consumeChars(final char[] chars, final int start, final int end) {
+  ensureArraySize(start, end, chars);
+
+  return this;
  }
 
- public static byte[] xor(final byte[] data, final byte xor) {
-  return transform(data, b -> (byte)(b ^ xor));
+ public BitStream appendShorts(final short... shorts) {
+  appendData(16, 0, shorts.length, shorts);
+  return this;
  }
 
- public static byte[] not(final byte[] data) {
-  return transform(data, b -> (byte)(~b));
+ public BitStream consumeShorts(final short[] shorts, final int start, final int end) {
+  ensureArraySize(start, end, shorts);
+  return this;
+ }
+
+ public BitStream appendInteger(final int... ints) {
+  appendData(32, 0, ints.length, ints);
+  return this;
+ }
+
+ public BitStream consumeInteger(final int[] ints, final int start, final int end) {
+  ensureArraySize(start, end, ints);
+  return this;
+ }
+
+ public BitStream appendFloats(final float... floats) {
+  appendData(32, 0, floats.length, floats);
+  return this;
+ }
+
+ public BitStream consumeFloats(final float[] floats, final int start, final int end) {
+  ensureArraySize(start, end, floats);
+  return this;
+ }
+
+ public BitStream appendLongs(final long... longs) {
+  appendData(64, 0, longs.length, longs);
+  return this;
+ }
+
+ public BitStream consumeLongs(final long[] longs, final int start, final int end) {
+  ensureArraySize(start, end, longs);
+  return this;
+ }
+
+ public BitStream appendDoubles(final double... doubles) {
+  appendData(64, 0, doubles.length, doubles);
+  return this;
+ }
+
+ public BitStream consumeDouble(final double[] doubles, final int start, final int end) {
+  ensureArraySize(start, end, doubles);
+  return this;
  }
 }
